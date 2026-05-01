@@ -30,15 +30,6 @@ import {
   PolarRadiusAxis,
 } from 'recharts';
 
-const initialTransactions = [
-  { id: '1', title: '雙人房 - 王小姐', amount: 3200, type: 'income', category: '民宿訂房', date: '2024-03-20' },
-  { id: '2', title: '臨時採收工資', amount: 1500, type: 'expense', category: '人力支出', date: '2024-03-21' },
-  { id: '3', title: '有機草莓 10 盒', amount: 2500, type: 'income', category: '農產品銷售', date: '2024-03-22' },
-  { id: '4', title: '3月份電費', amount: 4800, type: 'expense', category: '水電費', date: '2024-03-23' },
-  { id: '5', title: '週末包棟民宿收入', amount: 45000, type: 'income', category: '民宿訂房', date: '2024-03-24' },
-  { id: '6', title: '果園有機肥料採買', amount: 15000, type: 'expense', category: '農業支出', date: '2024-03-25' },
-];
-
 const categoryStyles = {
   民宿訂房: 'bg-blue-600 text-white',
   農產品銷售: 'bg-emerald-600 text-white',
