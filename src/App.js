@@ -49,6 +49,8 @@ const App = () => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [, forceUpdate] = useState(0);
   const [newEntry, setNewEntry] = useState({
     title: '',
     amount: '',
@@ -96,8 +98,14 @@ const App = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setTransactions(data);
+      setLastUpdated(new Date());
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => forceUpdate((n) => n + 1), 60000);
+    return () => clearInterval(timer);
   }, []);
 
   const stats = useMemo(() => {
@@ -117,6 +125,14 @@ const App = () => {
     });
     return Object.keys(cats).map((name) => ({ name, value: cats[name] }));
   }, [transactions]);
+
+  const getRelativeTime = (date) => {
+    if (!date) return '尚未更新';
+    const diff = Math.floor((new Date() - date) / 1000);
+    if (diff < 60) return '剛剛';
+    if (diff < 3600) return `${Math.floor(diff / 60)} 分鐘前`;
+    return `${Math.floor(diff / 3600)} 小時前`;
+  };
 
   const runFullAIAnalysis = () => {
     setLoadingAI(true);
@@ -238,7 +254,7 @@ const App = () => {
               {activeTab === 'ledger' ? '財務流水帳' : activeTab === 'ai' ? 'AI 智慧決策' : '營運概覽'}
               <span className="h-4 w-[1px] bg-slate-200 mx-2"></span>
               <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
-                <Clock size={12} /> 數據最後更新於 10 分鐘前
+                <Clock size={12} /> 數據最後更新於 {getRelativeTime(lastUpdated)}
               </span>
             </h2>
           </div>
