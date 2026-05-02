@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { db } from "./firebase";
-import { collection, addDoc, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronRight,
   Clock,
+  Trash2,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -47,6 +48,7 @@ const App = () => {
   const [transactions, setTransactions] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [newEntry, setNewEntry] = useState({
     title: '',
     amount: '',
@@ -90,7 +92,8 @@ const App = () => {
   });
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "transactions"), (snapshot) => {
+    const q = query(collection(db, "transactions"), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setTransactions(data);
     });
@@ -147,6 +150,15 @@ const App = () => {
       });
       setLoadingAI(false);
     }, 800);
+  };
+
+  const handleDelete = (transaction) => {
+    setDeleteTarget(transaction);
+  };
+
+  const confirmDelete = async () => {
+    await deleteDoc(doc(db, "transactions", deleteTarget.id));
+    setDeleteTarget(null);
   };
 
   const handleSave = async (e) => {
@@ -286,6 +298,7 @@ const App = () => {
                     <th className="px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">交易詳情</th>
                     <th className="px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] text-center">分類標籤</th>
                     <th className="px-10 py-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] text-right">金額 (TWD)</th>
+                    <th className="px-10 py-6"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -307,6 +320,15 @@ const App = () => {
                       </td>
                       <td className={`px-10 py-8 text-right font-black text-base font-mono ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
                         {t.type === 'income' ? `+ ${Number(t.amount).toLocaleString()}` : Number(t.amount).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-8 text-center">
+                        <button
+                          onClick={() => handleDelete(t)}
+                          className="text-red-400 hover:text-white hover:bg-red-500 p-2 rounded-xl transition-all"
+                          title="刪除此筆紀錄"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -397,6 +419,35 @@ const App = () => {
                 <button type="submit" className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20">儲存帳目</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[40px] w-full max-w-md p-10 shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-4 mb-8">
+              <div className="bg-red-50 p-4 rounded-2xl">
+                <Trash2 size={28} className="text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">確認刪除</h3>
+              <p className="text-sm text-slate-500">
+                確定要刪除「<span className="font-bold text-slate-700">{deleteTarget.title}</span>」這筆紀錄嗎？此動作無法復原。
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-4 text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl shadow-lg shadow-red-500/20 transition-all"
+              >
+                確認刪除
+              </button>
+            </div>
           </div>
         </div>
       )}
