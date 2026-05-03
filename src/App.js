@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { db } from "./firebase";
-import { collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, updateDoc } from "firebase/firestore";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Clock,
   Trash2,
+  Pencil,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -49,6 +50,7 @@ const App = () => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [, forceUpdate] = useState(0);
   const [newEntry, setNewEntry] = useState({
@@ -166,6 +168,18 @@ const App = () => {
       });
       setLoadingAI(false);
     }, 800);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    await updateDoc(doc(db, "transactions", editTarget.id), {
+      title: editTarget.title,
+      amount: Number(editTarget.amount),
+      type: editTarget.type,
+      category: editTarget.category,
+      date: editTarget.date,
+    });
+    setEditTarget(null);
   };
 
   const handleDelete = (transaction) => {
@@ -337,14 +351,23 @@ const App = () => {
                       <td className={`px-10 py-8 text-right font-black text-base font-mono ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
                         {t.type === 'income' ? `+ ${Number(t.amount).toLocaleString()}` : Number(t.amount).toLocaleString()}
                       </td>
-                      <td className="px-6 py-8 text-center">
-                        <button
-                          onClick={() => handleDelete(t)}
-                          className="text-red-400 hover:text-white hover:bg-red-500 p-2 rounded-xl transition-all"
-                          title="刪除此筆紀錄"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <td className="px-4 py-8 text-center">
+                        <div className="flex items-center gap-2 justify-center">
+                          <button
+                            onClick={() => setEditTarget({ ...t })}
+                            className="text-slate-400 hover:text-white hover:bg-slate-500 p-2 rounded-xl transition-all"
+                            title="編輯此筆紀錄"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(t)}
+                            className="text-red-400 hover:text-white hover:bg-red-500 p-2 rounded-xl transition-all"
+                            title="刪除此筆紀錄"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -433,6 +456,36 @@ const App = () => {
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 text-slate-400 font-bold text-sm">取消</button>
                 <button type="submit" className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20">儲存帳目</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl">
+            <h3 className="text-xl font-bold mb-8 text-slate-900 text-center">編輯交易紀錄</h3>
+            <form onSubmit={handleUpdate} className="space-y-6">
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setEditTarget({ ...editTarget, type: 'income' })} className={`py-4 rounded-2xl font-bold text-xs transition-all border-2 ${editTarget.type === 'income' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-transparent text-slate-400'}`}>
+                  收入項目
+                </button>
+                <button type="button" onClick={() => setEditTarget({ ...editTarget, type: 'expense' })} className={`py-4 rounded-2xl font-bold text-xs transition-all border-2 ${editTarget.type === 'expense' ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-50 border-transparent text-slate-400'}`}>
+                  支出項目
+                </button>
+              </div>
+              <input required type="text" className="w-full px-6 py-4 rounded-xl bg-slate-50 border-none font-bold text-sm" placeholder="交易項目名稱" value={editTarget.title} onChange={(e) => setEditTarget({ ...editTarget, title: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <input required type="number" className="w-full px-6 py-4 rounded-xl bg-slate-50 border-none font-bold text-sm" placeholder="金額" value={editTarget.amount} onChange={(e) => setEditTarget({ ...editTarget, amount: e.target.value })} />
+                <select className="w-full px-6 py-4 rounded-xl bg-slate-50 border-none font-bold text-sm text-slate-500" value={editTarget.category} onChange={(e) => setEditTarget({ ...editTarget, category: e.target.value })}>
+                  {Object.keys(categoryStyles).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setEditTarget(null)} className="flex-1 py-4 text-slate-400 font-bold text-sm">取消</button>
+                <button type="submit" className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20">儲存變更</button>
               </div>
             </form>
           </div>
